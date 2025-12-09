@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .auth-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    
+    .register-header {
+        background: linear-gradient(135deg, #ff5722 0%, #ff8a65 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-right: none;
+    }
+    .form-control {
+        border-left: none;
+    }
+    .form-control:focus {
+        border-color: #ced4da;
+        box-shadow: none; /* Убираем стандартную тень бутстрапа для чистоты */
+        border-bottom: 2px solid #ff5722; /* Оставляем только нижнее подчеркивание при фокусе */
+    }
+    /* Хак чтобы вернуть границу при фокусе на группе */
+    .input-group:focus-within {
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border-radius: 0.375rem;
+    }
+    
+    .btn-register {
+        background-color: #1e1e2f;
+        color: white;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 600;
+        border: none;
+        transition: 0.3s;
+    }
+    .btn-register:hover {
+        background-color: #2c3e50;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="row justify-content-center my-4">
+    <div class="col-md-6 col-lg-5">
+        <div class="card auth-card">
+            <div class="register-header">
+                <h3 class="fw-bold mb-1">Создать аккаунт</h3>
+                <p class="m-0 small opacity-75">Станьте клиентом банка за 1 минуту</p>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <form method="POST">
+                    <!-- Логин -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Логин</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" name="username" class="form-control py-2" placeholder="Придумайте логин" required>
+                        </div>
+                    </div>
+
+                    <!-- Пароль -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Пароль</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" name="password" class="form-control py-2" placeholder="•••••••" required>
+                        </div>
+                    </div>
+
+                    <!-- ФИО -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">ФИО</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-id-card text-muted"></i></span>
+                            <input type="text" name="name" class="form-control py-2" placeholder="Иванов Иван" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-4">
+                        <label class="form-label small text-muted fw-bold">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope text-muted"></i></span>
+                            <input type="email" name="email" class="form-control py-2" placeholder="mail@example.com" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-register w-100 mb-3">
+                        Зарегистрироваться
+                    </button>
+                    
+                    <div class="text-center">
+                        <span class="text-muted small">Уже есть счет?</span>
+                        <a href="/login" class="text-decoration-none fw-bold ms-1" style="color: #ff5722;">Войти</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

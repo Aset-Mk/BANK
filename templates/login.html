@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Локальные стили для формы входа */
+    .auth-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+    
+    .auth-header {
+        background-color: #1e1e2f; /* Темно-синий бренд */
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+    }
+
+    .btn-auth {
+        background-color: #ff5722;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+    .btn-auth:hover {
+        background-color: #e64a19;
+        transform: translateY(-2px);
+    }
+
+    .form-floating:focus-within {
+        z-index: 2;
+    }
+    .form-control:focus {
+        border-color: #ff5722;
+        box-shadow: 0 0 0 0.25rem rgba(255, 87, 34, 0.15);
+    }
+</style>
+
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="card auth-card">
+            <div class="auth-header">
+                <i class="fas fa-wallet fa-3x mb-3 text-warning"></i>
+                <h4 class="fw-bold m-0">Монета+</h4>
+                <p class="small opacity-75 m-0">Войдите в личный кабинет</p>
+            </div>
+            
+            <div class="card-body p-4 p-md-5 bg-white">
+                <form method="POST">
+                    <div class="form-floating mb-3">
+                        <input type="text" name="username" class="form-control" id="floatingInput" placeholder="Login" required>
+                        <label for="floatingInput">Логин</label>
+                    </div>
+                    <div class="form-floating mb-4">
+                        <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Password" required>
+                        <label for="floatingPassword">Пароль</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-auth w-100 mb-3">
+                        Войти <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Нет аккаунта?</small>
+                        <a href="/register" class="text-decoration-none fw-bold" style="color: #ff5722;">Зарегистрироваться</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

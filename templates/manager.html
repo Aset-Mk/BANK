@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --body-bg: #F4F7FE;
+        --panel-bg: #FFFFFF;
+        --primary-color: #4318FF;
+        --text-main: #2B3674;
+        --text-secondary: #A3AED0;
+        --success: #05CD99;
+        --danger: #EE5D50;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--body-bg);
+        color: var(--text-main);
+    }
+
+    .glass-panel {
+        background: var(--panel-bg);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    /* Статистика */
+    .stat-card {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        border-radius: 20px;
+        background: white;
+        box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-5px); }
+    
+    .stat-icon {
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; margin-right: 18px;
+    }
+    .icon-orange { background: #FFF7EB; color: #FFB547; }
+    .icon-blue { background: #EFF4FB; color: var(--primary-color); }
+
+    /* Таблица */
+    .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 12px; }
+    .table-custom thead th {
+        font-size: 12px; text-transform: uppercase; color: var(--text-secondary);
+        font-weight: 600; padding: 0 20px 10px; border: none;
+    }
+    .table-custom tbody tr {
+        background: white;
+        box-shadow: 0px 5px 10px rgba(112, 144, 176, 0.05);
+        transition: 0.2s;
+    }
+    .table-custom tbody tr:hover { transform: scale(1.01); }
+    
+    .table-custom td { padding: 20px; vertical-align: middle; }
+    .table-custom td:first-child { border-radius: 16px 0 0 16px; }
+    .table-custom td:last-child { border-radius: 0 16px 16px 0; }
+
+    .user-avatar {
+        width: 42px; height: 42px; background: var(--primary-color);
+        color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-weight: 700; margin-right: 14px; font-size: 14px;
+    }
+
+    .btn-action {
+        width: 38px; height: 38px; border-radius: 12px;
+        display: inline-flex; align-items: center; justify-content: center;
+        transition: 0.2s; margin-left: 6px; text-decoration: none;
+    }
+    .btn-approve { background: rgba(5, 205, 153, 0.15); color: var(--success); }
+    .btn-approve:hover { background: var(--success); color: white; }
+    
+    .btn-reject { background: rgba(238, 93, 80, 0.15); color: var(--danger); }
+    .btn-reject:hover { background: var(--danger); color: white; }
+
+</style>
+
+<div class="container py-5" style="max-width: 1100px;">
+    <div class="d-flex justify-content-between align-items-end mb-5">
+        <div>
+            <h5 class="text-secondary mb-1">Панель Менеджера</h5>
+            <h2 class="fw-bold m-0">Управление заявками</h2>
+        </div>
+        <div class="glass-panel py-2 px-3 d-flex align-items-center">
+            <i class="far fa-calendar-alt me-2 text-primary"></i>
+            <span class="fw-bold text-dark small">Сегодня</span>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon icon-orange"><i class="fas fa-hourglass-half"></i></div>
+                <div>
+                    <h5 class="text-secondary mb-0 small">Ожидают решения</h5>
+                    <h2 class="fw-bold m-0 text-dark">{{ loans|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon icon-blue"><i class="fas fa-check-circle"></i></div>
+                <div>
+                    <h5 class="text-secondary mb-0 small">Обработано сегодня</h5>
+                    <h2 class="fw-bold m-0 text-dark">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица -->
+    <h4 class="fw-bold mb-4">Входящие заявки</h4>
+    
+    {% if loans %}
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>Клиент</th>
+                <th>Сумма кредита</th>
+                <th>Срок</th>
+                <th>Дата подачи</th>
+                <th class="text-end">Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in loans %}
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar">{{ l.username[0]|upper }}</div>
+                        <div>
+                            <div class="fw-bold text-dark">{{ l.username }}</div>
+                            <div class="small text-secondary">ID: #{{ l.id }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-bold text-dark fs-5">{{ "{:,.0f}".format(l.amount) }} ₸</div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center text-secondary fw-medium">
+                        <i class="far fa-clock me-2"></i> {{ l.term_months }} мес.
+                    </div>
+                </td>
+                <td class="text-secondary fw-medium">
+                    {{ l.created_at }}
+                </td>
+                <td class="text-end">
+                    <a href="/process_loan/{{ l.id }}/approved" class="btn-action btn-approve" title="Одобрить">
+                        <i class="fas fa-check"></i>
+                    </a>
+                    <a href="/process_loan/{{ l.id }}/rejected" class="btn-action btn-reject" title="Отклонить">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="glass-panel text-center py-5">
+        <div class="mb-3 text-secondary opacity-25">
+            <i class="fas fa-clipboard-check fa-4x"></i>
+        </div>
+        <h5 class="fw-bold">Все чисто!</h5>
+        <p class="text-muted">На данный момент новых заявок нет.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

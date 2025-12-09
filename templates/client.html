@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --body-bg: #F4F7FE;
+        --panel-bg: #FFFFFF;
+        --primary-color: #4318FF;
+        --text-main: #2B3674;
+        --text-secondary: #A3AED0;
+        --success: #05CD99;
+        --danger: #EE5D50;
+        --warning: #FFB547;
+        
+        --card-gradient: linear-gradient(120deg, #1B254B 0%, #111C44 100%);
+        --credit-gradient: linear-gradient(135deg, #868CFF 0%, #4318FF 100%); /* Фиолетовый для кредитов */
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--body-bg);
+        color: var(--text-main);
+    }
+
+    /* === UI Компоненты === */
+    .dashboard-container { max-width: 1200px; margin: 0 auto; padding-bottom: 50px; }
+
+    .glass-panel {
+        background: var(--panel-bg);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+        
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        position: relative;
+        overflow: hidden;
+
+    }
+
+    h5 { font-weight: 700; color: var(--text-main); margin-bottom: 20px; font-size: 18px; }
+
+    /* === Банковская Карта === */
+    .bank-card-wrap { perspective: 1000px; margin-bottom: 25px; }
+    .premium-card {
+        background: var(--card-gradient);
+        border-radius: 24px;
+        padding: 28px;
+        color: white;
+        box-shadow: 0 20px 50px -12px rgba(27, 37, 75, 0.5);
+        transition: transform 0.3s ease;
+        min-height: 240px;
+        position: relative;
+    }
+    .premium-card:hover { transform: translateY(-5px); }
+    
+    /* Декор карты */
+    .premium-card::after {
+        content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        filter: blur(40px); transform: rotate(45deg); pointer-events: none;
+    }
+
+    .card-chip {
+        width: 45px; height: 34px;
+        background: linear-gradient(135deg, #e6cfa3 0%, #d6b87c 100%);
+        border-radius: 6px; border: 1px solid #bba36b;
+    }
+    .card-number {
+        font-family: 'Space Mono', monospace; font-size: 26px; letter-spacing: 3px;
+        margin: 25px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .meta-label { font-size: 10px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px; }
+    .meta-value { font-family: 'Space Mono', monospace; font-size: 14px; }
+    .cvv-blur { filter: blur(4px); transition: 0.3s; cursor: pointer; background: rgba(255,255,255,0.1); padding: 0 6px; border-radius: 4px; }
+    .cvv-blur:hover { filter: blur(0); background: rgba(255,255,255,0.2); }
+
+    /* === Виджет Кредита (Новый) === */
+    .credit-offer-card {
+        background: var(--credit-gradient);
+        color: white;
+        border: none;
+    }
+    .credit-offer-card h5 { color: white; }
+    .credit-input {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 12px;
+        padding: 10px 15px;
+        width: 100%;
+        outline: none;
+    }
+    .credit-input::placeholder { color: rgba(255,255,255,0.6); }
+    .credit-input:focus { background: rgba(255, 255, 255, 0.25); border-color: white; }
+    
+    .btn-white {
+        background: white; color: var(--primary-color);
+        border: none; padding: 12px; width: 100%; border-radius: 12px;
+        font-weight: 700; transition: 0.2s;
+    }
+    .btn-white:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+    /* === Статусы кредитов === */
+    .loan-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px; border-bottom: 1px solid #F4F7FE;
+    }
+    .loan-item:last-child { border-bottom: none; }
+    
+    .status-badge {
+        padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    }
+    .status-pending { background: rgba(255, 181, 71, 0.15); color: var(--warning); }
+    .status-approved { background: rgba(5, 205, 153, 0.15); color: var(--success); }
+    .status-rejected { background: rgba(238, 93, 80, 0.15); color: var(--danger); }
+
+    /* === Формы и списки === */
+    .input-group-custom {
+        background: #F4F7FE; border-radius: 16px; padding: 10px 16px;
+        display: flex; align-items: center; margin-bottom: 16px;
+        border: 1px solid transparent; transition: 0.2s;
+    }
+    .input-group-custom:focus-within { background: #fff; border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1); }
+    .input-custom { border: none; background: transparent; width: 100%; outline: none; font-weight: 500; color: var(--text-main); }
+    .input-icon { color: var(--text-secondary); font-size: 18px; margin-right: 12px; }
+
+    .btn-primary-soft {
+        background: var(--primary-color); color: white;
+        border: none; padding: 14px; width: 100%; border-radius: 16px;
+        font-weight: 600; transition: 0.2s;
+    }
+    .btn-primary-soft:hover { background: #3311db; }
+
+    /* Транзакции */
+    .trans-icon-box {
+        width: 42px; height: 42px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; margin-right: 15px;
+    }
+    .icon-in { background: rgba(5, 205, 153, 0.1); color: var(--success); }
+    .icon-out { background: rgba(238, 93, 80, 0.1); color: var(--danger); }
+</style>
+
+<div class="container py-5 dashboard-container">
+    <div class="d-flex justify-content-between align-items-end mb-4 animate-in">
+        <div>
+            <h5 class="text-secondary mb-1 fw-normal">Личный кабинет</h5>
+            <h2 class="m-0 fw-bold">Привет, {{ user }}! 👋</h2>
+        </div>
+        <a href="/create_account" class="btn btn-dark rounded-pill px-4">
+            <i class="fas fa-plus me-2"></i>Открыть счет
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- === ЛЕВАЯ КОЛОНКА === -->
+        <div class="col-lg-7">
+            <!-- Список Карт -->
+            {% for acc in accounts %}
+            <div class="bank-card-wrap">
+                <div class="premium-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="card-chip mb-3"></div>
+                            <i class="fas fa-wifi" style="transform: rotate(90deg); opacity: 0.7;"></i>
+                        </div>
+                        <div class="text-end">
+                            <div class="meta-label text-white-50">Баланс</div>
+                            <div class="fw-bold fs-3">{{ "{:,.0f}".format(acc.balance) }} ₸</div>
+                        </div>
+                    </div>
+
+                    <div class="card-number">
+                        {{ acc.card_number[:4] }} {{ acc.card_number[4:8] }} {{ acc.card_number[8:12] }} {{ acc.card_number[12:] }}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div>
+                            <div class="meta-label">Владелец</div>
+                            <div class="meta-value">{{ acc.owner_name }}</div>
+                        </div>
+                        <div class="d-flex gap-4">
+                            <div><div class="meta-label">Срок</div><div class="meta-value">{{ acc.expiry_date }}</div></div>
+                            <div><div class="meta-label">CVC</div><div class="meta-value cvv-blur">{{ acc.cvv }}</div></div>
+                        </div>
+                        <div class="fs-1 opacity-75">
+                            {% if acc.card_number.startswith('4') %}<i class="fab fa-cc-visa"></i>{% else %}<i class="fab fa-cc-mastercard"></i>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="glass-panel text-center py-5 mb-4">
+                <i class="far fa-credit-card fa-3x text-secondary mb-3"></i>
+                <p>У вас нет активных счетов.</p>
+            </div>
+            {% endfor %}
+
+            <!-- Блок: Мои кредиты (Список) -->
+            <div class="glass-panel mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="m-0">Мои кредиты</h5>
+                    {% if loans %}<span class="badge bg-light text-dark">{{ loans|length }} активных</span>{% endif %}
+                </div>
+                
+                {% if loans %}
+                    <div class="loans-list">
+                        {% for loan in loans %}
+                        <div class="loan-item">
+                            <div class="d-flex align-items-center">
+                                <div class="trans-icon-box bg-light text-primary">
+                                    <i class="fas fa-file-contract"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">Кредит наличными</div>
+                                    <div class="small text-muted">Срок: {{ loan.term_months }} мес. • от {{ loan.created_at }}</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold mb-1">{{ "{:,.0f}".format(loan.amount) }} ₸</div>
+                                {% if loan.status == 'approved' %}
+                                    <span class="status-badge status-approved">Одобрено</span>
+                                {% elif loan.status == 'rejected' %}
+                                    <span class="status-badge status-rejected">Отказано</span>
+                                {% else %}
+                                    <span class="status-badge status-pending">На проверке</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-3 text-muted small">
+                        История кредитов пуста
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- === ПРАВАЯ КОЛОНКА === -->
+        <div class="col-lg-5">
+            
+            <!-- 1. Виджет: Предложение Кредита (Яркий) -->
+            <div class="glass-panel credit-offer-card mb-4 position-relative">
+                <!-- Декоративные круги -->
+                <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                
+                <div class="d-flex align-items-center mb-3 position-relative">
+                    <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div>
+                        <h5 class="m-0 text-white">Нужны деньги?</h5>
+                        <small style="opacity: 0.8;">Одобрение за 5 минут</small>
+                    </div>
+                </div>
+
+                <form action="/loan_request" method="POST" class="position-relative">
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="small text-white-50 ms-1 mb-1">Сумма (KZT)</label>
+                            <input type="number" name="amount" class="credit-input" placeholder="500 000" required>
+                        </div>
+                        <div class="col-5">
+                            <label class="small text-white-50 ms-1 mb-1">Срок (мес)</label>
+                            <input type="number" name="term" class="credit-input" placeholder="12" required>
+                        </div>
+                    </div>
+                    <button class="btn-white">
+                        Получить предложение <i class="fas fa-arrow-right ms-2 small"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2. Форма Перевода -->
+            <div class="glass-panel mb-4">
+                <h5 class="mb-4"><i class="fas fa-paper-plane text-primary me-2"></i>Перевод</h5>
+                <form action="/transaction" method="POST">
+                    <input type="hidden" name="action" value="transfer">
+                    
+                    <div class="mb-3">
+                        <div class="input-group-custom">
+                            <i class="fas fa-wallet input-icon"></i>
+                            <select name="account_number" class="input-custom" style="cursor: pointer;">
+                                {% for acc in accounts %}
+                                <option value="{{ acc.account_number }}">•• {{ acc.card_number[-4:] }} ({{ acc.balance|int }} ₸)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="input-group-custom">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" name="to_account" class="input-custom" placeholder="Номер счета получателя (KZ...)" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="input-group-custom">
+                            <i class="fas fa-coins input-icon"></i>
+                            <input type="number" name="amount" class="input-custom" placeholder="Сумма перевода" required>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary-soft">Перевести средства</button>
+                </form>
+            </div>
+
+            <!-- 3. История операций -->
+            <div class="glass-panel">
+                <h5 class="mb-3">История</h5>
+                <div class="transactions-list">
+                    {% for t in history %}
+                    <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
+                        <div class="d-flex align-items-center">
+                            <div class="trans-icon-box {% if 'DEPOSIT' in t.type or 'IN' in t.type %}icon-in{% else %}icon-out{% endif %}">
+                                {% if 'DEPOSIT' in t.type %}<i class="fas fa-arrow-down"></i>
+                                {% elif 'LOAN' in t.type %}<i class="fas fa-hand-holding-usd"></i>
+                                {% else %}<i class="fas fa-arrow-up"></i>{% endif %}
+                            </div>
+                            <div style="line-height: 1.2;">
+                                <div class="fw-bold small text-dark">{{ t.description }}</div>
+                                <div class="small text-muted" style="font-size: 11px;">{{ t.timestamp }}</div>
+                            </div>
+                        </div>
+                        <div class="fw-bold {% if 'DEPOSIT' in t.type or 'IN' in t.type %}text-success{% else %}text-dark{% endif %}">
+                            {{ '+' if 'DEPOSIT' in t.type or 'IN' in t.type else '-' }}{{ t.amount|int }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small text-center py-3">Нет операций</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

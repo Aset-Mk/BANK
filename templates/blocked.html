@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="alert alert-danger text-center">
+    <h4>🚫 Доступ запрещен</h4>
+    <p>Аккаунт <b>{{ username }}</b> заблокирован.</p>
+</div>
+<div class="card">
+    <div class="card-header">Подать апелляцию</div>
+    <div class="card-body">
+        <form method="POST">
+            <textarea name="message" class="form-control mb-3" placeholder="Причина для разблокировки..."></textarea>
+            <button type="submit" class="btn btn-warning">Отправить апелляцию</button>
+            <a href="/logout" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Подключение иконок и шрифтов -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f4f6f9;
+    }
+
+    /* Основные контейнеры */
+    .admin-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.02);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        padding: 20px 25px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .card-title {
+        font-weight: 700;
+        margin: 0;
+        color: #2c3e50;
+    }
+
+    /* Таблица пользователей */
+    .table-custom {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-custom th {
+        background: #fafbfc;
+        text-transform: uppercase;
+        font-size: 11px;
+        color: #95a5a6;
+        padding: 15px 25px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #eee;
+    }
+    .table-custom td {
+        padding: 15px 25px;
+        border-bottom: 1px solid #f5f5f5;
+        vertical-align: middle;
+        background: white;
+    }
+    .table-custom tr:last-child td { border-bottom: none; }
+    .table-custom tr:hover td { background-color: #fcfcfc; }
+
+    /* Элементы пользователя */
+    .user-avatar {
+        width: 35px; height: 35px;
+        border-radius: 10px;
+        background: #eef2f7;
+        color: #5d6d7e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        margin-right: 12px;
+    }
+    .user-info { display: flex; align-items: center; }
+    .user-name { font-weight: 600; color: #2c3e50; font-size: 14px; }
+    .user-email { font-size: 12px; color: #95a5a6; }
+
+    /* Бейджи ролей */
+    .badge-role {
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .role-admin { background: #2c3e50; color: white; }
+    .role-manager { background: #e0f2f1; color: #00897b; }
+    .role-client { background: #f3f4f6; color: #6b7280; }
+
+    /* Статус */
+    .status-dot {
+        height: 8px; width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    .status-active { background-color: #27ae60; }
+    .status-blocked { background-color: #e74c3c; }
+
+    /* Кнопки действий */
+    .btn-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        cursor: pointer;
+    }
+    .btn-block { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
+    .btn-block:hover { background: #e74c3c; color: white; }
+    
+    .btn-unblock { background: rgba(39, 174, 96, 0.1); color: #27ae60; }
+    .btn-unblock:hover { background: #27ae60; color: white; }
+
+    /* Секция апелляций */
+    .appeal-ticket {
+        background: #fff;
+        border-left: 4px solid #f39c12;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 0 8px 8px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        border-top: 1px solid #eee;
+        border-right: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+    .appeal-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+    .appeal-msg {
+        font-size: 14px;
+        color: #444;
+        margin-bottom: 12px;
+        line-height: 1.5;
+        background: #fdfdfd;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px dashed #eee;
+    }
+</style>
+
+<div class="container py-4">
+    <!-- Заголовок -->
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark">Администрирование</h2>
+        <p class="text-muted">Управление доступом и рассмотрение заявок</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- ЛЕВАЯ КОЛОНКА: Таблица пользователей -->
+        <div class="col-lg-8">
+            <div class="admin-card">
+                <div class="card-header-custom">
+                    <h5 class="card-title"><i class="fas fa-users me-2 text-primary"></i>Пользователи</h5>
+                    <span class="badge bg-light text-dark">{{ users|length }} всего</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Роль</th>
+                                <th>Статус</th>
+                                <th class="text-end">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">{{ u.username[0]|upper }}</div>
+                                        <div>
+                                            <div class="user-name">{{ u.name if u.name else u.username }}</div>
+                                            <div class="user-email">{{ u.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-role 
+                                        {% if u.role == 'admin' %}role-admin
+                                        {% elif u.role == 'manager' %}role-manager
+                                        {% else %}role-client{% endif %}">
+                                        {{ u.role }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if u.is_blocked %}
+                                    <span class="text-danger fw-bold" style="font-size: 12px;">
+                                        <span class="status-dot status-blocked"></span>Blocked
+                                    </span>
+                                    {% else %}
+                                    <span class="text-success fw-bold" style="font-size: 12px;">
+                                        <span class="status-dot status-active"></span>Active
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if u.role != 'admin' %}
+                                        {% if u.is_blocked %}
+                                        <a href="/toggle_block/{{ u.username }}/0" class="btn-icon btn-unblock" title="Разблокировать">
+                                            <i class="fas fa-unlock"></i>
+                                        </a>
+                                        {% else %}
+                                        <a href="/toggle_block/{{ u.username }}/1" class="btn-icon btn-block" title="Заблокировать">
+                                            <i class="fas fa-lock"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted small"><i class="fas fa-shield-alt"></i></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: Апелляции -->
+        <div class="col-lg-4">
+            <div class="admin-card" style="background: #fdfdfd;">
+                <div class="card-header-custom bg-white">
+                    <h5 class="card-title text-warning"><i class="fas fa-exclamation-circle me-2"></i>Апелляции</h5>
+                    {% if appeals %}
+                    <span class="badge bg-warning text-dark rounded-pill">{{ appeals|length }}</span>
+                    {% endif %}
+                </div>
+                <div class="p-3">
+                    {% for a in appeals %}
+                    <div class="appeal-ticket">
+                        <div class="appeal-header">
+                            <span class="fw-bold text-dark"><i class="fas fa-user me-1 text-muted"></i> {{ a.username }}</span>
+                            <span class="text-muted" style="font-size: 11px;">{{ a.created_at }}</span>
+                        </div>
+                        <div class="appeal-msg">
+                            "{{ a.message }}"
+                        </div>
+                        <div class="d-grid">
+                            <a href="/resolve_appeal/{{ a.id }}/{{ a.username }}" class="btn btn-success btn-sm fw-bold">
+                                <i class="fas fa-check-circle me-1"></i> Разблокировать
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="far fa-smile fa-3x text-muted opacity-25 mb-3"></i>
+                        <h6 class="text-muted">Нет новых обращений</h6>
+                        <p class="small text-muted">Заблокированные пользователи могут писать сюда запросы на разбан.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
