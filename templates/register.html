@@ -25,10 +25,9 @@
     }
     .form-control:focus {
         border-color: #ced4da;
-        box-shadow: none; /* Убираем стандартную тень бутстрапа для чистоты */
-        border-bottom: 2px solid #ff5722; /* Оставляем только нижнее подчеркивание при фокусе */
+        box-shadow: none;
+        border-bottom: 2px solid #ff5722;
     }
-    /* Хак чтобы вернуть границу при фокусе на группе */
     .input-group:focus-within {
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border-radius: 0.375rem;
@@ -46,6 +45,27 @@
     .btn-register:hover {
         background-color: #2c3e50;
         transform: translateY(-2px);
+    }
+
+    /* Стили для валидации пароля */
+    .password-requirements {
+        font-size: 0.75rem;
+        margin-top: 5px;
+        padding-left: 0;
+        list-style: none;
+    }
+    .password-requirements li {
+        margin-bottom: 2px;
+        color: #A3AED0;
+        transition: 0.3s;
+    }
+    .password-requirements li i {
+        width: 15px;
+        margin-right: 5px;
+    }
+    .req-valid {
+        color: #05CD99 !important; /* Зеленый цвет успеха */
+        font-weight: 600;
     }
 </style>
 
@@ -68,13 +88,34 @@
                         </div>
                     </div>
 
-                    <!-- Пароль -->
+                    <!-- Пароль с валидацией -->
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Пароль</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-lock text-muted"></i></span>
-                            <input type="password" name="password" class="form-control py-2" placeholder="•••••••" required>
+                            <!-- 
+                                pattern объяснение:
+                                (?=.*\d) - хотя бы одна цифра
+                                (?=.*[a-z]) - хотя бы одна строчная буква
+                                (?=.*[A-Z]) - хотя бы одна заглавная буква
+                                .{8,} - минимум 8 символов
+                            -->
+                            <input type="password" 
+                                   name="password" 
+                                   id="passwordInput"
+                                   class="form-control py-2" 
+                                   placeholder="•••••••" 
+                                   required 
+                                   pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                                   title="Пароль должен содержать минимум 8 символов, заглавную букву, строчную букву и цифру">
                         </div>
+                        <!-- Список требований (визуальный) -->
+                        <ul class="password-requirements mt-2">
+                            <li id="req-len"><i class="far fa-circle"></i>Минимум 8 символов</li>
+                            <li id="req-num"><i class="far fa-circle"></i>Хотя бы одна цифра</li>
+                            <li id="req-low"><i class="far fa-circle"></i>Строчная буква (a-z)</li>
+                            <li id="req-upp"><i class="far fa-circle"></i>Заглавная буква (A-Z)</li>
+                        </ul>
                     </div>
 
                     <!-- ФИО -->
@@ -108,4 +149,46 @@
         </div>
     </div>
 </div>
+
+<!-- Скрипт для проверки сложности пароля в реальном времени -->
+<script>
+    const passwordInput = document.getElementById('passwordInput');
+    const reqLen = document.getElementById('req-len');
+    const reqNum = document.getElementById('req-num');
+    const reqLow = document.getElementById('req-low');
+    const reqUpp = document.getElementById('req-upp');
+
+    passwordInput.addEventListener('keyup', function() {
+        const val = passwordInput.value;
+
+        // 1. Длина
+        if (val.length >= 8) updateStatus(reqLen, true);
+        else updateStatus(reqLen, false);
+
+        // 2. Цифра
+        if (/\d/.test(val)) updateStatus(reqNum, true);
+        else updateStatus(reqNum, false);
+
+        // 3. Строчная буква
+        if (/[a-z]/.test(val)) updateStatus(reqLow, true);
+        else updateStatus(reqLow, false);
+
+        // 4. Заглавная буква
+        if (/[A-Z]/.test(val)) updateStatus(reqUpp, true);
+        else updateStatus(reqUpp, false);
+    });
+
+    function updateStatus(element, isValid) {
+        const icon = element.querySelector('i');
+        if (isValid) {
+            element.classList.add('req-valid');
+            icon.classList.remove('fa-circle', 'far');
+            icon.classList.add('fa-check-circle', 'fas');
+        } else {
+            element.classList.remove('req-valid');
+            icon.classList.add('fa-circle', 'far');
+            icon.classList.remove('fa-check-circle', 'fas');
+        }
+    }
+</script>
 {% endblock %}
