@@ -3,6 +3,8 @@
 {% block content %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<!-- Подключаем Bootstrap JS для работы модальных окон -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
     :root {
@@ -16,7 +18,7 @@
         --warning: #FFB547;
         
         --card-gradient: linear-gradient(120deg, #1B254B 0%, #111C44 100%);
-        --credit-gradient: linear-gradient(135deg, #868CFF 0%, #4318FF 100%); /* Фиолетовый для кредитов */
+        --credit-gradient: linear-gradient(135deg, #868CFF 0%, #4318FF 100%);
     }
 
     body {
@@ -33,11 +35,9 @@
         border-radius: 20px;
         padding: 24px;
         box-shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
-        
         border: 1px solid rgba(255, 255, 255, 0.5);
         position: relative;
         overflow: hidden;
-
     }
 
     h5 { font-weight: 700; color: var(--text-main); margin-bottom: 20px; font-size: 18px; }
@@ -56,7 +56,6 @@
     }
     .premium-card:hover { transform: translateY(-5px); }
     
-    /* Декор карты */
     .premium-card::after {
         content: ''; position: absolute; top: -50%; right: -50%; width: 100%; height: 100%;
         background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
@@ -77,21 +76,14 @@
     .cvv-blur { filter: blur(4px); transition: 0.3s; cursor: pointer; background: rgba(255,255,255,0.1); padding: 0 6px; border-radius: 4px; }
     .cvv-blur:hover { filter: blur(0); background: rgba(255,255,255,0.2); }
 
-    /* === Виджет Кредита (Новый) === */
-    .credit-offer-card {
-        background: var(--credit-gradient);
-        color: white;
-        border: none;
-    }
+    /* === Виджет Кредита === */
+    .credit-offer-card { background: var(--credit-gradient); color: white; border: none; }
     .credit-offer-card h5 { color: white; }
     .credit-input {
         background: rgba(255, 255, 255, 0.15);
         border: 1px solid rgba(255, 255, 255, 0.2);
         color: white;
-        border-radius: 12px;
-        padding: 10px 15px;
-        width: 100%;
-        outline: none;
+        border-radius: 12px; padding: 10px 15px; width: 100%; outline: none;
     }
     .credit-input::placeholder { color: rgba(255,255,255,0.6); }
     .credit-input:focus { background: rgba(255, 255, 255, 0.25); border-color: white; }
@@ -198,11 +190,11 @@
             </div>
             {% endfor %}
 
-            <!-- Блок: Мои кредиты (Список) -->
+            <!-- Блок: Мои кредиты -->
             <div class="glass-panel mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0">Мои кредиты</h5>
-                    {% if loans %}<span class="badge bg-light text-dark">{{ loans|length }} активных</span>{% endif %}
+                    {% if loans %}<span class="badge bg-light text-dark">{{ loans|length }} заявок</span>{% endif %}
                 </div>
                 
                 {% if loans %}
@@ -214,16 +206,33 @@
                                     <i class="fas fa-file-contract"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark">Кредит наличными</div>
-                                    <div class="small text-muted">Срок: {{ loan.term_months }} мес. • от {{ loan.created_at }}</div>
+                                    <div class="fw-bold text-dark">
+                                        Кредит #{{ loan.id }}
+                                        {% if loan.status == 'approved' %}
+                                            <span class="small text-muted fw-normal ms-2">Остаток:</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted">
+                                        {% if loan.status == 'approved' %}
+                                            <span class="text-dark fw-bold fs-6">{{ "{:,.0f}".format(loan.remaining_amount if loan.remaining_amount else loan.amount) }} ₸</span>
+                                        {% else %}
+                                            Сумма заявки: {{ "{:,.0f}".format(loan.amount) }} ₸
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="text-end">
-                                <div class="fw-bold mb-1">{{ "{:,.0f}".format(loan.amount) }} ₸</div>
+                            <div class="text-end d-flex flex-column align-items-end gap-1">
                                 {% if loan.status == 'approved' %}
-                                    <span class="status-badge status-approved">Одобрено</span>
+                                    <span class="status-badge status-approved mb-1">Активен</span>
+                                    <button class="btn btn-sm btn-primary rounded-pill px-3 py-1" 
+                                            style="font-size: 12px;"
+                                            onclick="openRepayModal('{{ loan.id }}', '{{ loan.remaining_amount if loan.remaining_amount else loan.amount }}')">
+                                        Погасить
+                                    </button>
                                 {% elif loan.status == 'rejected' %}
                                     <span class="status-badge status-rejected">Отказано</span>
+                                {% elif loan.status == 'paid' %}
+                                    <span class="status-badge bg-secondary text-white">Погашен</span>
                                 {% else %}
                                     <span class="status-badge status-pending">На проверке</span>
                                 {% endif %}
@@ -242,18 +251,18 @@
         <!-- === ПРАВАЯ КОЛОНКА === -->
         <div class="col-lg-5">
             
-            <!-- 1. Виджет: Предложение Кредита (Яркий) -->
+            <!-- 1. Виджет: Предложение Кредита (ОБНОВЛЕН: добавлен %) -->
             <div class="glass-panel credit-offer-card mb-4 position-relative">
-                <!-- Декоративные круги -->
                 <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
                 
                 <div class="d-flex align-items-center mb-3 position-relative">
                     <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-percent"></i>
                     </div>
                     <div>
-                        <h5 class="m-0 text-white">Нужны деньги?</h5>
-                        <small style="opacity: 0.8;">Одобрение за 5 минут</small>
+                        <h5 class="m-0 text-white">Кредит наличными</h5>
+                        <!-- Выводим ставку, которую передали из app.py -->
+                        <small style="opacity: 0.9;">Ставка {{ loan_rate }}% • Решение за 5 мин.</small>
                     </div>
                 </div>
 
@@ -269,7 +278,7 @@
                         </div>
                     </div>
                     <button class="btn-white">
-                        Получить предложение <i class="fas fa-arrow-right ms-2 small"></i>
+                        Оформить заявку <i class="fas fa-arrow-right ms-2 small"></i>
                     </button>
                 </form>
             </div>
@@ -316,7 +325,7 @@
                     {% for t in history %}
                     <div class="d-flex align-items-center justify-content-between py-2 border-bottom border-light">
                         <div class="d-flex align-items-center">
-                            <div class="trans-icon-box {% if 'DEPOSIT' in t.type or 'IN' in t.type %}icon-in{% else %}icon-out{% endif %}">
+                            <div class="trans-icon-box {% if 'DEPOSIT' in t.type or 'IN' in t.type or 'APPROVED' in t.type %}icon-in{% else %}icon-out{% endif %}">
                                 {% if 'DEPOSIT' in t.type %}<i class="fas fa-arrow-down"></i>
                                 {% elif 'LOAN' in t.type %}<i class="fas fa-hand-holding-usd"></i>
                                 {% else %}<i class="fas fa-arrow-up"></i>{% endif %}
@@ -326,8 +335,8 @@
                                 <div class="small text-muted" style="font-size: 11px;">{{ t.timestamp }}</div>
                             </div>
                         </div>
-                        <div class="fw-bold {% if 'DEPOSIT' in t.type or 'IN' in t.type %}text-success{% else %}text-dark{% endif %}">
-                            {{ '+' if 'DEPOSIT' in t.type or 'IN' in t.type else '-' }}{{ t.amount|int }}
+                        <div class="fw-bold {% if 'DEPOSIT' in t.type or 'IN' in t.type or 'APPROVED' in t.type %}text-success{% else %}text-dark{% endif %}">
+                            {{ '+' if 'DEPOSIT' in t.type or 'IN' in t.type or 'APPROVED' in t.type else '-' }}{{ t.amount|int }}
                         </div>
                     </div>
                     {% else %}
@@ -339,4 +348,76 @@
         </div>
     </div>
 </div>
+
+<!-- === МОДАЛЬНОЕ ОКНО ПОГАШЕНИЯ === -->
+<div class="modal fade" id="repayModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: none; overflow: hidden;">
+      <div class="modal-header border-0 bg-light">
+        <h5 class="modal-title fw-bold">Погашение кредита</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="/repay_loan" method="POST">
+          <div class="modal-body p-4">
+            <input type="hidden" name="loan_id" id="modalLoanId">
+            
+            <p class="text-muted small mb-4">Выберите счет для списания средств и укажите сумму платежа.</p>
+            
+            <!-- Выбор счета -->
+            <div class="mb-3">
+                <label class="small fw-bold text-muted mb-2">Счет списания</label>
+                <div class="input-group-custom border">
+                    <i class="fas fa-wallet input-icon"></i>
+                    <select name="account_number" class="input-custom" required>
+                        {% for acc in accounts %}
+                        <option value="{{ acc.account_number }}">
+                            •• {{ acc.card_number[-4:] }} ({{ "{:,.0f}".format(acc.balance) }} ₸)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Сумма -->
+            <div class="mb-3">
+                <label class="small fw-bold text-muted mb-2">Сумма (KZT)</label>
+                <div class="input-group-custom border">
+                    <i class="fas fa-coins input-icon"></i>
+                    <input type="number" name="amount" id="modalAmount" class="input-custom" step="0.01" required>
+                </div>
+                <div class="text-end mt-2">
+                    <small class="text-primary fw-bold" style="cursor: pointer;" onclick="setFullAmount()">
+                        Погасить полностью
+                    </small>
+                </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer border-0 pt-0 pb-4 px-4">
+            <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Оплатить</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+    let currentLoanAmount = 0;
+
+    function openRepayModal(loanId, remainingAmount) {
+        document.getElementById('modalLoanId').value = loanId;
+        currentLoanAmount = parseFloat(remainingAmount);
+        const amountInput = document.getElementById('modalAmount');
+        amountInput.placeholder = "Долг: " + remainingAmount;
+        amountInput.value = ""; 
+        var myModal = new bootstrap.Modal(document.getElementById('repayModal'));
+        myModal.show();
+    }
+
+    function setFullAmount() {
+        document.getElementById('modalAmount').value = currentLoanAmount;
+    }
+</script>
+
 {% endblock %}
