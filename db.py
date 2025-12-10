@@ -81,9 +81,9 @@ class Database:
 
     def seed_data(self):
         users = [
-            ('admin', 'Adm!n47', 'admin', 'Админ', 'admin1@bank.kz'),
-            ('manager', 'Manag3r45', 'manager', 'Менеджер Иван', 'manager@bank.kz'),
-            ('client', 'Cl!ent42', 'client', 'Тестовый Клиент', 'client@bank.kz')
+            ('admin1', 'admin123', 'admin', 'Мукашев Асет', 'admin1@bank.kz'),
+            ('manager', 'manager123', 'manager', 'Менеджер Иван', 'manager@bank.kz'),
+            ('client', 'client123', 'client', 'Тестовый Клиент', 'client@bank.kz')
         ]
         with self.get_connection() as conn:
             cursor = conn.cursor()
