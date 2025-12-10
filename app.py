@@ -5,6 +5,9 @@ app = Flask(__name__)
 app.secret_key = 'super_secret_key_bank_moneta' # Для работы сессий
 db = Database()
 
+# Настройка комиссии банка (15%)
+LOAN_RATE = 0.15 
+
 # --- Декораторы и утилиты ---
 def login_required(role=None):
     # Простая проверка авторизации внутри роутов
@@ -83,7 +86,15 @@ def client_dash():
     
     accounts = db.get_client_accounts(session['user'])
     history = db.get_history(session['user'])
-    return render_template('client.html', accounts=accounts, history=history, user=session['name'])
+    loans = db.get_client_loans(session['user']) 
+    
+    # Передаем loan_rate в шаблон, чтобы клиент видел процентную ставку
+    return render_template('client.html', 
+                           accounts=accounts, 
+                           history=history, 
+                           loans=loans, 
+                           user=session['name'],
+                           loan_rate=int(LOAN_RATE * 100)) # Передаем как целое число (15)
 
 @app.route('/transaction', methods=['POST'])
 def transaction():
@@ -105,10 +116,42 @@ def transaction():
 
 @app.route('/loan_request', methods=['POST'])
 def loan_request():
-    amount = float(request.form['amount'])
-    term = int(request.form['term'])
+    try:
+        amount = float(request.form['amount'])
+        term = int(request.form['term'])
+    except ValueError:
+        flash('Некорректные данные', 'danger')
+        return redirect(url_for('client_dash'))
+    
+    # Расчет полной суммы возврата для уведомления пользователя
+    total_repayment = amount * (1 + LOAN_RATE)
+    
+    # В БД передаем базовые данные, математику начисления сделаем внутри метода request_loan
     db.request_loan(session['user'], amount, term)
-    flash('Заявка на кредит отправлена', 'info')
+    
+    flash(f'Заявка на {amount:,.0f} ₸ отправлена. С учетом комиссии ({int(LOAN_RATE*100)}%) к возврату: {total_repayment:,.0f} ₸', 'info')
+    return redirect(url_for('client_dash'))
+
+@app.route('/repay_loan', methods=['POST'])
+def repay_loan():
+    check = login_required('client')
+    if check: return check
+
+    loan_id = request.form.get('loan_id')
+    account_number = request.form.get('account_number')
+    try:
+        amount = float(request.form.get('amount'))
+    except (ValueError, TypeError):
+        flash('Некорректная сумма', 'danger')
+        return redirect(url_for('client_dash'))
+
+    result = db.repay_loan(loan_id, account_number, amount)
+
+    if result['success']:
+        flash('Платеж по кредиту успешно выполнен!', 'success')
+    else:
+        flash(f"Ошибка: {result['message']}", 'danger')
+
     return redirect(url_for('client_dash'))
 
 @app.route('/create_account')
