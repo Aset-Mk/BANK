@@ -63,7 +63,14 @@ class Database:
             cursor.execute('''CREATE TABLE IF NOT EXISTS loans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, amount REAL,
                 term_months INTEGER, status TEXT DEFAULT 'pending', created_at TEXT,
+                remaining_amount REAL,
                 FOREIGN KEY(username) REFERENCES users(username))''')
+            
+            # МИГРАЦИЯ: Проверяем, есть ли поле remaining_amount
+            cursor.execute("PRAGMA table_info(loans)")
+            columns = [info[1] for info in cursor.fetchall()]
+            if 'remaining_amount' not in columns:
+                cursor.execute("ALTER TABLE loans ADD COLUMN remaining_amount REAL")
             
             # Таблица обращений
             cursor.execute('''CREATE TABLE IF NOT EXISTS appeals (
@@ -74,9 +81,9 @@ class Database:
 
     def seed_data(self):
         users = [
-            ('admin1', 'admin123', 'admin', 'Мукашев Асет', 'admin1@bank.kz'),
-            ('manager', 'manager123', 'manager', 'Менеджер Иван', 'manager@bank.kz'),
-            ('client', 'client123', 'client', 'Тестовый Клиент', 'client@bank.kz')
+            ('admin', 'Adm!n47', 'admin', 'Админ', 'admin1@bank.kz'),
+            ('manager', 'Manag3r45', 'manager', 'Менеджер Иван', 'manager@bank.kz'),
+            ('client', 'Cl!ent42', 'client', 'Тестовый Клиент', 'client@bank.kz')
         ]
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -104,7 +111,6 @@ class Database:
             with self.get_connection() as conn:
                 conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, 0)",
                              (username, hashed_pw, role, name, email, datetime.now()))
-                # Если создаем клиента, сразу открываем ему счет
                 if role == 'client':
                     self.create_account(username, 'Текущий', conn)
                 conn.commit()
@@ -128,8 +134,6 @@ class Database:
             cursor = conn.cursor()
             res = cursor.execute("SELECT COUNT(*) FROM accounts").fetchone()
             acc_num = f"KZ{2000 + res[0] + 1}"
-            
-            # Генерация карты
             card_num, cvv, exp_date = self.generate_card_details()
 
             cursor.execute("INSERT INTO accounts VALUES (?, ?, ?, ?, ?, ?, ?)", 
@@ -142,7 +146,6 @@ class Database:
 
     def get_client_accounts(self, username):
         with self.get_connection() as conn:
-            # JOIN users нужен для получения полного имени владельца (для отображения на карте)
             return conn.execute('''
                 SELECT a.*, u.name as owner_name 
                 FROM accounts a 
@@ -160,12 +163,10 @@ class Database:
             if not target: return "Счет получателя не найден"
             if sender['balance'] < amount: return "Недостаточно средств"
 
-            # Списание и зачисление
             cursor.execute("UPDATE accounts SET balance = balance - ? WHERE account_number=?", (amount, from_acc))
             cursor.execute("UPDATE accounts SET balance = balance + ? WHERE account_number=?", (amount, to_acc))
             
             ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-            # Запись двух транзакций (для отправителя и получателя)
             cursor.execute("INSERT INTO transactions (account_number, type, amount, description, timestamp) VALUES (?, ?, ?, ?, ?)",
                            (from_acc, "TRANSFER_OUT", amount, f"Перевод на {to_acc}", ts))
             cursor.execute("INSERT INTO transactions (account_number, type, amount, description, timestamp) VALUES (?, ?, ?, ?, ?)",
@@ -188,45 +189,76 @@ class Database:
 
     # --- Кредиты (Loans) ---
     def request_loan(self, username, amount, months):
+        """Создание заявки на кредит с начислением процентов (15%)"""
         with self.get_connection() as conn:
-            conn.execute("INSERT INTO loans (username, amount, term_months, created_at) VALUES (?, ?, ?, ?)",
-                         (username, amount, months, datetime.now().strftime("%Y-%m-%d")))
+            # ИЗМЕНЕНИЕ ЗДЕСЬ:
+            # amount - сумма, которую клиент хочет получить (и получит при одобрении).
+            # total_debt - сумма, которую он должен банку (amount + 15%).
+            interest_rate = 0.15
+            total_debt = amount * (1 + interest_rate)
+            
+            conn.execute("INSERT INTO loans (username, amount, term_months, created_at, remaining_amount) VALUES (?, ?, ?, ?, ?)",
+                         (username, amount, months, datetime.now().strftime("%Y-%m-%d"), total_debt))
             conn.commit()
 
     def get_loans(self, status):
-        """Получить заявки по статусу (Для менеджера)"""
         with self.get_connection() as conn:
             return conn.execute("SELECT * FROM loans WHERE status=?", (status,)).fetchall()
 
     def get_client_loans(self, username):
-        """Получить все кредиты конкретного клиента"""
         with self.get_connection() as conn:
             return conn.execute("SELECT * FROM loans WHERE username=?", (username,)).fetchall()
 
     def process_loan(self, loan_id, decision):
-        """Обработка заявки менеджером (approved/rejected)"""
         with self.get_connection() as conn:
-            # 1. Находим заявку
             loan = conn.execute("SELECT * FROM loans WHERE id=?", (loan_id,)).fetchone()
             if not loan: return False
             
-            # 2. Обновляем статус
             conn.execute("UPDATE loans SET status=? WHERE id=?", (decision, loan_id))
 
-            # 3. Если одобрено — начисляем деньги клиенту
             if decision == 'approved':
-                # Ищем любой активный счет клиента
                 acc = conn.execute("SELECT account_number FROM accounts WHERE username=? LIMIT 1", (loan['username'],)).fetchone()
                 if acc:
-                    # Пополняем баланс
+                    # Клиент получает "чистую" сумму (amount), но долг (remaining_amount) уже записан с процентами
                     conn.execute("UPDATE accounts SET balance = balance + ? WHERE account_number=?", (loan['amount'], acc['account_number']))
-                    # Пишем историю
                     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
                     conn.execute("INSERT INTO transactions (account_number, type, amount, description, timestamp) VALUES (?, ?, ?, ?, ?)",
                                    (acc['account_number'], "LOAN_APPROVED", loan['amount'], "Кредитные средства", ts))
             
             conn.commit()
             return True
+
+    def repay_loan(self, loan_id, account_number, amount):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            acc = cursor.execute("SELECT balance FROM accounts WHERE account_number=?", (account_number,)).fetchone()
+            if not acc: return {'success': False, 'message': 'Счет не найден'}
+            if acc['balance'] < amount: return {'success': False, 'message': 'Недостаточно средств на счете'}
+
+            loan = cursor.execute("SELECT * FROM loans WHERE id=?", (loan_id,)).fetchone()
+            if not loan or loan['status'] != 'approved': return {'success': False, 'message': 'Кредит не активен'}
+
+            current_debt = loan['remaining_amount'] if loan['remaining_amount'] is not None else loan['amount']
+            
+            if amount > current_debt + 1:
+                return {'success': False, 'message': 'Сумма превышает остаток долга'}
+
+            new_balance = acc['balance'] - amount
+            new_debt = current_debt - amount
+            if new_debt < 0: new_debt = 0
+
+            new_status = 'paid' if new_debt <= 0 else 'approved'
+
+            cursor.execute("UPDATE accounts SET balance = ? WHERE account_number = ?", (new_balance, account_number))
+            cursor.execute("UPDATE loans SET remaining_amount = ?, status = ? WHERE id = ?", (new_debt, new_status, loan_id))
+
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+            cursor.execute("INSERT INTO transactions (account_number, type, amount, description, timestamp) VALUES (?, ?, ?, ?, ?)",
+                           (account_number, "LOAN_REPAYMENT", amount, f"Погашение кредита #{loan_id}", ts))
+            
+            conn.commit()
+            return {'success': True}
 
     # --- Обращения (Appeals) ---
     def create_appeal(self, username, message):
